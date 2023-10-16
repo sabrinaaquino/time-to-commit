@@ -28,7 +28,7 @@ def check_user_contribution(username, date):
   return False
 
 def main():
-  """Checks if the user Bard has contributed to any repository on today's date."""
+  """Checks if the user Sabrina has contributed to any repository on today's date."""
 
   username = 'sabrinaaquino'
   date = today
