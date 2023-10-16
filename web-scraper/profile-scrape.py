@@ -1,36 +1,40 @@
 import requests
-from bs4 import BeautifulSoup
 import datetime
+import json
 
 today = datetime.datetime.today().strftime('%Y-%m-%d')
 
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
+token = config['GITHUB_ACCESS_TOKEN']
+
 def check_user_contribution(username, date):
-  """Checks if a user has contributed to any GitHub repository on a specific day.
-
-  Args:
-    username: The username of the user to check.
-    date: The date to check (in YYYY-MM-DD format).
-
-  Returns:
-    True if the user has contributed to at least one repository on the specified date, False otherwise.
+  headers = {'Authorization': f'bearer {token}'}
+  
+  query = f"""
+  {{
+    user(login: "{username}") {{
+      contributionsCollection(from: "{date}T00:00:00Z", to: "{date}T23:59:59Z") {{
+        contributionCalendar {{
+          totalContributions
+        }}
+      }}
+    }}
+  }}
   """
-
-  url = f'https://github.com/{username}/contributions?from={date}&to={date}'
-  response = requests.get(url)
-  soup = BeautifulSoup(response.content, 'html.parser')
-
-  # Check if the user has any contributions on the specified date.
-  contributions = soup.find_all('rect', class_='contribution calendar-day')
-  for contribution in contributions:
-    if contribution['data-date'] == date:
-      return True
-
-  return False
+  
+  request = requests.post('https://api.github.com/graphql', json={'query': query}, headers=headers)
+  if request.status_code == 200:
+    result = request.json()
+    totalContributions = result['data']['user']['contributionsCollection']['contributionCalendar']['totalContributions']
+    return totalContributions > 0
+  else:
+    raise Exception(f"Query failed with status code {request.status_code}")
 
 def main(): 
-  username = 'sabrinaaquino'
+  username = 'CharlieGreenman'
   date = today
-
   has_contributed = check_user_contribution(username, date)
 
   if has_contributed:
